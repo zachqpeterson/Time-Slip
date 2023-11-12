@@ -22,10 +22,10 @@ public:
 	VkResult Present(VkQueue_T* queue, U32 imageIndex, U32 waitCount, VkSemaphore_T** waits);
 
 public:
-	VkSwapchainKHR_T* swapchain{ nullptr };
-	VkSurfaceKHR_T* surface{ nullptr };
+	VkSwapchainKHR_T*			swapchain{ nullptr };
+	VkSurfaceKHR_T*				surface{ nullptr };
 	U32							imageCount{ MAX_SWAPCHAIN_IMAGES };
-	Texture* renderTargets[MAX_SWAPCHAIN_IMAGES];
+	Texture*					renderTargets[MAX_SWAPCHAIN_IMAGES];
 
 	U32							width;
 	U32							height;

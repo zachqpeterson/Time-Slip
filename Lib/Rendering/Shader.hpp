@@ -19,13 +19,6 @@ enum DrawType
 	DRAW_TYPE_FULLSCREEN,
 };
 
-enum PushConstantType
-{
-	PUSH_CONSTANT_TYPE_NONE,
-	PUSH_CONSTANT_TYPE_CAMERA,
-	PUSH_CONSTANT_TYPE_POST_PROCESS,
-};
-
 enum CullMode
 {
 	CULL_MODE_NONE = 0,
@@ -132,7 +125,7 @@ struct VkDescriptorSetLayout_T;
 struct VkDescriptorUpdateTemplate_T;
 enum VkShaderStageFlagBits;
 
-struct Descriptor
+struct NH_API Descriptor
 {
 	union
 	{
@@ -213,7 +206,7 @@ struct VkComputePipelineCreateInfo;
 struct Specialization;
 struct ShaderInfo;
 
-struct Shader
+struct NH_API Shader
 {
 	bool Create(const String& shaderPath, U8 pushConstantCount, PushConstant* pushConstants);
 	void Destroy();
@@ -229,14 +222,14 @@ struct Shader
 	U64									handle{ U64_MAX };
 
 	PipelineBindPoint					bindPoint{ PIPELINE_BIND_POINT_MAX_ENUM };
-	VkPipelineLayout_T* pipelineLayout{ nullptr };
+	VkPipelineLayout_T*					pipelineLayout{ nullptr };
 	ShaderStage							stages[MAX_SHADER_STAGES]{};
 	U32									language{ 0 };
-	U32									pushConstantStages{}; //VkShaderStageFlags
+	U32									pushConstantStages{ 0 }; //VkShaderStageFlags
 	PushConstant						pushConstants[MAX_PUSH_CONSTANTS]{};
 	U8									pushConstantCount{ 0 };
 	DrawType							drawType{ DRAW_TYPE_INDEX };
-
+	Subpass								subpass{};
 	U8									descriptorCount{ 0 };
 	Descriptor							descriptors[MAX_DESCRIPTORS_PER_SET];
 

@@ -25,7 +25,7 @@ void operator delete[](void* ptr);
 /// <summary>
 /// This is a general purpose memory allocator, with linear and dynamic allocating, with NO garbage collection
 /// </summary>
-class Memory
+class NH_API Memory
 {
 struct Region1kb { private: U64 unused[128]; };
 struct Region16kb { private: Region1kb unused[16]; };
@@ -44,6 +44,8 @@ public:
 	template<Pointer Type> static void Free(Type* pointer);
 
 	template<Pointer Type> static void AllocateStatic(Type* pointer);
+	template<Pointer Type> static void AllocateStaticSize(Type* pointer, const U64& size);
+	template<Pointer Type> static void AllocateStaticArray(Type* pointer, const U64& count);
 
 	static bool IsDynamicallyAllocated(void* pointer);
 	static bool IsStaticallyAllocated(void* pointer);
@@ -202,7 +204,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count)
 
 	if (*pointer != nullptr)
 	{
-		CopyFree((void**)pointer, (void*)temp, count);
+		CopyFree((void**)pointer, (void*)temp, totalSize);
 	}
 
 	*pointer = (Type)temp;
@@ -240,7 +242,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 
 	if (*pointer != nullptr)
 	{
-		CopyFree((void**)pointer, (void*)temp, count);
+		CopyFree((void**)pointer, (void*)temp, totalSize);
 	}
 
 	*pointer = (Type)temp;
@@ -270,7 +272,41 @@ inline void Memory::AllocateStatic(Type* pointer)
 
 	if (staticPointer + size <= memory + totalSize)
 	{
-		*pointer = staticPointer;
+		*pointer = (Type)staticPointer;
+		staticPointer += size;
+
+		return;
+	}
+
+	BreakPoint;
+}
+
+template<Pointer Type> 
+inline void Memory::AllocateStaticSize(Type* pointer, const U64& size)
+{
+	if (!initialized) { Initialize(); }
+
+	if (staticPointer + size <= memory + totalSize)
+	{
+		*pointer = (Type)staticPointer;
+		staticPointer += size;
+
+		return;
+	}
+
+	BreakPoint;
+}
+
+template<Pointer Type> 
+inline void Memory::AllocateStaticArray(Type* pointer, const U64& count)
+{
+	if (!initialized) { Initialize(); }
+
+	U64 size = sizeof(RemovedPointer<Type>) * count;
+
+	if (staticPointer + size <= memory + totalSize)
+	{
+		*pointer = (Type)staticPointer;
 		staticPointer += size;
 
 		return;

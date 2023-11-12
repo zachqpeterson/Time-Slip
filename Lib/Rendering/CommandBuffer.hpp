@@ -36,6 +36,7 @@ struct CommandBuffer
 	void ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects);
 
 	void BeginRenderpass(Renderpass* renderpass);
+	void NextSubpass();
 	void EndRenderpass();
 
 	void SetViewport(const VkViewport& viewport, const VkRect2D& scissor);
@@ -68,7 +69,7 @@ struct CommandBuffer
 	bool						baked{ false };
 
 private:
-	VkCommandBuffer_T* commandBuffer{ nullptr };
+	VkCommandBuffer_T*			commandBuffer{ nullptr };
 
 	friend struct CommandBufferRing;
 };
@@ -80,8 +81,8 @@ struct CommandBufferRing
 
 	void							ResetPools(U32 frameIndex);
 
-	CommandBuffer* GetCommandBuffer(U32 frame);
-	CommandBuffer* GetCommandBufferInstant(U32 frame);
+	CommandBuffer*					GetCommandBuffer(U32 frame);
+	CommandBuffer*					GetCommandBufferInstant(U32 frame);
 
 	static U16						PoolFromIndex(U32 index) { return (U16)index / bufferPerPool; }
 
@@ -90,7 +91,7 @@ struct CommandBufferRing
 	static constexpr U16			bufferPerPool = 4;
 	static constexpr U16			maxBuffers = bufferPerPool * maxPools;
 
-	VkCommandPool_T* commandPools[maxPools];
+	VkCommandPool_T*				commandPools[maxPools];
 	CommandBuffer					commandBuffers[maxBuffers];
 	U8								nextFreePerThreadFrame[maxPools];
 };

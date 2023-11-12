@@ -38,7 +38,6 @@ struct CameraData
 
 struct PostProcessData
 {
-	U32 textureIndex;
 	F32 contrast{ 1.0f };
 	F32 brightness{ 0.0f };
 	F32 saturation{ 1.0f };
@@ -56,19 +55,27 @@ struct PostProcessData
 //TODO: Saturation		✓
 //TODO: Tonemapping		✓
 //TODO: Gamma			✓
-class Renderer
+class NH_API Renderer
 {
 public:
 	static void							LoadScene(Scene* scene);
-	static void							SetRenderGraph(RenderGraph* graph);
+	static void							SetRenderGraph(PipelineGraph* graph);
+	static CameraData*					GetCameraData();
 
-	static const Vector4& RenderArea();
+	static const Vector4&				RenderArea();
 	static U32							FrameIndex();
 	static U32							CurrentFrame();
+	static U32							AbsoluteFrame();
 
-	static const VkPhysicalDeviceFeatures& GetDeviceFeatures();
-	static const VkPhysicalDeviceProperties& GetDeviceProperties();
-	static const VkPhysicalDeviceMemoryProperties& GetDeviceMemoryProperties();
+	static const VkPhysicalDeviceFeatures&			GetDeviceFeatures();
+	static const VkPhysicalDeviceProperties&		GetDeviceProperties();
+	static const VkPhysicalDeviceMemoryProperties&	GetDeviceMemoryProperties();
+
+	static VkImageMemoryBarrier2		ImageBarrier(VkImage_T* image, U64 srcStageMask, U64 srcAccessMask,
+		VkImageLayout oldLayout, U64 dstStageMask, U64 dstAccessMask,
+		VkImageLayout newLayout, U32 aspectMask = 1, U32 baseMipLevel = 0, U32 levelCount = ~0, U32 layerCount = ~0);
+	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer_T* buffer, U64 srcStageMask, U64 srcAccessMask,
+		U64 dstStageMask, U64 dstAccessMask);
 
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
@@ -82,19 +89,14 @@ private:
 
 	static bool							BeginFrame();
 	static void							EndFrame();
+	static void							Record();
 	static void							Resize();
 	static void							SetRenderArea();
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 	static void							FrameCountersAdvance();
-
-	static CommandBuffer* GetCommandBuffer();
-
-	static VkImageMemoryBarrier2		ImageBarrier(VkImage_T* image, U64 srcStageMask, U64 srcAccessMask,
-		VkImageLayout oldLayout, U64 dstStageMask, U64 dstAccessMask,
-		VkImageLayout newLayout, U32 aspectMask = 1, U32 baseMipLevel = 0, U32 levelCount = ~0, U32 layerCount = ~0);
-	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer_T* buffer, U64 srcStageMask, U64 srcAccessMask,
-		U64 dstStageMask, U64 dstAccessMask);
+	
+	static CommandBuffer*				GetCommandBuffer();
 
 	static Buffer						CreateBuffer(U32 size, U32 usageFlags, U32 memoryFlags);
 	static void							FillBuffer(Buffer& buffer, U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);
@@ -105,12 +107,11 @@ private:
 
 	static void							PushConstants(CommandBuffer* commandBuffer, Shader* shader);
 
-	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubemap(Texture* texture, void* data, U32* layerSize);
 	static bool							CreateRenderpass(Renderpass* renderpass);
+	static bool							RecreateRenderpass(Renderpass* renderpass);
 
-	static void							DestroySamplerInstant(Sampler* sampler);
 	static void							DestroyTextureInstant(Texture* texture);
 	static void							DestroyRenderPassInstant(Renderpass* renderpass);
 
@@ -127,15 +128,15 @@ private:
 	static U32									appVersion;
 
 	// DEVICE
-	static VkInstance_T* instance;
-	static VkPhysicalDevice_T* physicalDevice;
-	static VkDevice_T* device;
-	static VkQueue_T* deviceQueue;
+	static VkInstance_T*						instance;
+	static VkPhysicalDevice_T*					physicalDevice;
+	static VkDevice_T*							device;
+	static VkQueue_T*							deviceQueue;
 	static Swapchain							swapchain;
 	static U32									queueFamilyIndex;
 
-	static VkAllocationCallbacks* allocationCallbacks;
-	static VkDescriptorPool_T* descriptorPool;
+	static VkAllocationCallbacks*				allocationCallbacks;
+	static VkDescriptorPool_T*					descriptorPool;
 	static U64									uboAlignment;
 	static U64									sboAlignemnt;
 
@@ -152,21 +153,21 @@ private:
 	static bool									resized;
 
 	// RESOURCES
-	static Scene* currentScene;
-	static VmaAllocator_T* allocator;
+	static Scene*								currentScene;
+	static VmaAllocator_T*						allocator;
 	static CommandBufferRing					commandBufferRing;
 	static Buffer								stagingBuffer;
 	static Buffer								materialBuffer;
 	static CameraData							cameraData;
 	static PostProcessData						postProcessData;
-	static RenderGraph* renderGraph;
+	static PipelineGraph*						pipelineGraph;
 
 	// SYNCRONIZATION
-	static VkSemaphore_T* imageAcquired;
-	static VkSemaphore_T* queueSubmitted;
+	static VkSemaphore_T*						imageAcquired;
+	static VkSemaphore_T*						queueSubmitted;
 
 	// DEBUG
-	static VkDebugUtilsMessengerEXT_T* debugMessenger;
+	static VkDebugUtilsMessengerEXT_T*			debugMessenger;
 
 	static bool									debugUtilsExtensionPresent;
 

@@ -7,8 +7,7 @@
 
 struct TilePushConstant
 {
-	Matrix4 vp;
-	Vector3 globalColor;
+	Vector4 globalColor;
 };
 
 struct Scene;
@@ -23,10 +22,14 @@ public:
 
 	static void Update();
 
+	static void UploadTiles(U32 size, void* data);
+	static void UpdateTiles(U32 size, U32 offset, void* data);
+	static U32 GetTextureIndex(U32 id);
+
 private:
 	static Shader* tileShader;
 	static Pipeline* tilePipeline;
-	static RenderGraph tileRenderGraph;
+	static PipelineGraph tilePipelineGraph;
 	static TilePushConstant tilePushConstant;
 
 	static Scene* gameScene;

@@ -1,7 +1,7 @@
 #CONFIG
 language=GLSL
 cull=FRONT
-front=COUNTER
+front=CLOCKWISE
 fill=SOLID
 depth=LESS
 blend=ADD
@@ -12,15 +12,21 @@ order=0
 #VERTEX
 #version 450
 
-struct Globals
+struct GlobalTileData
+{
+	vec4 globalColor;
+};
+
+struct CameraData
 {
 	mat4 viewProjection;
-	vec3 globalColor;
+    vec4 eye;
 };
 
 layout(push_constant) uniform block
 {
-	Globals globals;
+    GlobalTileData globalTileData;
+	CameraData cameraData;
 };
 
 layout (location = 0) in vec2 position;
@@ -38,9 +44,9 @@ layout (location = 2) flat out uint outTexIndex;
 void main()
 {
     vec4 worldPosition = vec4(position.xy + instPosition.xy, instPosition.z, 1.0);
-    gl_Position = globals.viewProjection * worldPosition;
+    gl_Position = cameraData.viewProjection * worldPosition;
     outTexcoord = texcoord + instTexcoord;
-    outColor = instColor * globals.globalColor;
+    outColor = instColor * globalTileData.globalColor.rgb;
     outTexIndex = texIndex;
 }
 #VERTEX_END
@@ -57,8 +63,12 @@ layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
 
 layout(location = 0) out vec4 outColor;
 
+const uint INVALID_TEXTURE_INDEX = 65535;
+
 void main()
 {
+    if(texIndex == INVALID_TEXTURE_INDEX) { discard; }
+
     outColor = texture(globalTextures[texIndex], texcoord) * vec4(color, 1.0);
 }
 #FRAGMENT_END

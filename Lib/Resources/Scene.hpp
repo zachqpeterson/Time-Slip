@@ -2,10 +2,10 @@
 
 #include "ResourceDefines.hpp"
 
-struct Scene
+struct NH_API Scene
 {
 public:
-	void Create();
+	void Create(CameraType cameraType);
 	~Scene();
 	void Destroy();
 

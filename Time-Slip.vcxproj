@@ -19,11 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Src\Chunk.cpp" />
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\Time-Slip.cpp" />
+    <ClCompile Include="Src\World.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Src\Chunk.hpp" />
+    <ClInclude Include="Src\Tile.hpp" />
     <ClInclude Include="Src\Time-Slip.hpp" />
+    <ClInclude Include="Src\World.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -113,6 +118,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)Src; $(SolutionDir)Lib;</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4251;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,6 +137,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)Src; $(SolutionDir)Lib;</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4251;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
