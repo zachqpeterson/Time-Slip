@@ -9,11 +9,13 @@ public:
 	Freelist();
 	Freelist(U32 count);
 
+	Freelist& operator()(U32 count);
+	Freelist& operator()(U32* memory, U32 count);
+
 	void Destroy();
 	~Freelist();
 
-	Freelist& operator()(U32 count);
-	Freelist& operator()(U32* memory, U32 count);
+	void Reset();
 
 	U32 GetFree();
 	void Release(U32 index);
@@ -21,7 +23,6 @@ public:
 	bool Full() const;
 
 private:
-	U32 size;
 	U32 capacity;
 	bool outsideAllocated;
 

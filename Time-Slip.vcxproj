@@ -21,13 +21,14 @@
   <ItemGroup>
     <ClCompile Include="Src\Chunk.cpp" />
     <ClCompile Include="Src\Main.cpp" />
-    <ClCompile Include="Src\Time-Slip.cpp" />
+    <ClCompile Include="Src\Timeslip.cpp" />
     <ClCompile Include="Src\World.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Chunk.hpp" />
     <ClInclude Include="Src\Tile.hpp" />
-    <ClInclude Include="Src\Time-Slip.hpp" />
+    <ClInclude Include="Src\Timeslip.hpp" />
+    <ClInclude Include="Src\TimeslipDefines.hpp" />
     <ClInclude Include="Src\World.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

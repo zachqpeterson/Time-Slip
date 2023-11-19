@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Defines.hpp"
+#include "Timeslip.hpp"
 
 struct Tile;
 struct TileInstance;
@@ -8,11 +8,13 @@ struct Vector2Int;
 
 struct Chunk
 {
-	void Load(Tile* tiles, const Vector2Int& position, TileInstance* instances, U32 index);
-	U32 Unload();
+	void Create(const Vector2Int& position, TileInstance* instances, U32 offset);
+	void Load(U8 direction);
 
 private:
-	Tile* tiles;
+	TileInstance* instances;
+	Vector2Int position;
+	U32 offset;
 
-	U32 index{ U32_MAX };
+	friend class World;
 };

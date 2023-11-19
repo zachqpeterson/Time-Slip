@@ -1,7 +1,7 @@
 #include "Engine.hpp"
-#include "Time-Slip.hpp"
+#include "Timeslip.hpp"
 
 int main()
 {
-	Engine::Initialize("Time-Slip", MakeVersionNumber(0, 1, 0), TimeSlip::Initialize, TimeSlip::Update, TimeSlip::Shutdown);
+	Engine::Initialize("Timeslip", MakeVersionNumber(0, 1, 0), Timeslip::Initialize, Timeslip::Update, Timeslip::Shutdown);
 }

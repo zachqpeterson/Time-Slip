@@ -6,37 +6,33 @@
 #include "Math\Math.hpp"
 #include "Resources\ResourceDefines.hpp"
 #include "Resources\Settings.hpp"
+#include "Rendering\Pipeline.hpp"
 #include "Platform\Input.hpp"
 
 #include "Tile.hpp"
 #include "Chunk.hpp"
-#include "Time-Slip.hpp"
-
-constexpr I64 TOTAL_TILE_COUNT = WORLD_SIZE_LARGE * (U64)((F32)WORLD_SIZE_LARGE / 3.5f);
-constexpr I64 TOTAL_CHUNK_COUNT = TOTAL_TILE_COUNT / 64;
-constexpr I64 VIEW_CHUNKS_X = 12;
-constexpr I64 VIEW_CHUNKS_Y = 8;
-constexpr I64 CHUNK_SIZE = 8;
-
-constexpr I64 MAX_SEED = 90000000000; //9000000000000000
+#include "Timeslip.hpp"
 
 I64 World::SEED;
 I16 World::TILE_COUNT_X;
 I16 World::TILE_COUNT_Y;
 I16 World::TILE_OFFSET_X;
 I16 World::TILE_OFFSET_Y;
-I16 World::CHUNK_COUNT_X;
-I16 World::CHUNK_COUNT_Y;
-I16 World::CHUNK_OFFSET_X;
-I16 World::CHUNK_OFFSET_Y;
+I16 World::FIRST_CHUNK_X;
+I16 World::LAST_CHUNK_X;
+I16 World::FIRST_CHUNK_Y;
+I16 World::LAST_CHUNK_Y;
 
 Vector2Int World::chunkPos = Vector2IntZero;
 Vector2Int World::prevChunkPos = Vector2IntZero;
 
-Freelist World::freeChunks{ VIEW_CHUNKS_X * VIEW_CHUNKS_Y };
-
+TileInstance World::instances[CHUNK_INSTANCE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y];
 Tile* World::tiles{ nullptr };
-Chunk* World::chunks{ nullptr };
+Chunk World::chunks[VIEW_CHUNKS_X * VIEW_CHUNKS_Y];
+U8 World::leftIndex{ 0 };
+U8 World::rightIndex{ VIEW_CHUNKS_X - 1 };
+U8 World::bottomIndex{ 0 };
+U8 World::topIndex{ VIEW_CHUNKS_Y - 1 };
 
 bool World::Initialize(WorldSize size)
 {
@@ -46,46 +42,33 @@ bool World::Initialize(WorldSize size)
 	TILE_COUNT_Y = (U16)(TILE_COUNT_X / 3.5f);
 	TILE_OFFSET_X = TILE_COUNT_X / 2;
 	TILE_OFFSET_Y = TILE_COUNT_Y / 2;
-	CHUNK_COUNT_X = TILE_COUNT_X / CHUNK_SIZE;
-	CHUNK_COUNT_Y = TILE_COUNT_Y / CHUNK_SIZE;
-	CHUNK_OFFSET_X = CHUNK_COUNT_X / 2;
-	CHUNK_OFFSET_Y = CHUNK_COUNT_Y / 2;
+	FIRST_CHUNK_X = -TILE_OFFSET_X / CHUNK_SIZE + VIEW_OFFSET_X;
+	LAST_CHUNK_X = TILE_OFFSET_X / CHUNK_SIZE - VIEW_OFFSET_X;
+	FIRST_CHUNK_Y = -TILE_OFFSET_Y / CHUNK_SIZE + VIEW_OFFSET_Y;
+	LAST_CHUNK_Y = TILE_OFFSET_Y / CHUNK_SIZE - VIEW_OFFSET_Y;
 
 	if (!tiles) { Memory::AllocateStaticArray(&tiles, TOTAL_TILE_COUNT); }
-	if (!chunks) { Memory::AllocateStaticArray(&chunks, TOTAL_CHUNK_COUNT); } //TODO: There is no point to having this many chunks, only need VIEW_CHUNKS_X * VIEW_CHUNKS_Y
 
 	GenerateWorld();
 
-	//assume spawn is at 0,0 for now
-
-	Tile* startTiles = GetTile(-VIEW_CHUNKS_X / 2 * CHUNK_SIZE, -VIEW_CHUNKS_Y / 2 * CHUNK_SIZE);
-	Chunk* startChunks = GetChunk(-VIEW_CHUNKS_X / 2, -VIEW_CHUNKS_Y / 2);
-	U64 tileOffset = 0;
-
-	I32 x = -(I32)(VIEW_CHUNKS_X / 2 * CHUNK_SIZE);
-	Vector2Int position = { x, -(I32)(VIEW_CHUNKS_Y / 2 * CHUNK_SIZE) };
-
-	TileInstance instances[192];
+	Vector2Int position = { -VIEW_OFFSET_X, -VIEW_OFFSET_Y };
 
 	U32 i = 0;
 	for (U32 y = 0; y < VIEW_CHUNKS_Y; ++y)
 	{
 		for (U32 x = 0; x < VIEW_CHUNKS_X; ++x, ++i)
 		{
-			startChunks[x].Load(startTiles + tileOffset, position, instances, freeChunks.GetFree());
+			U32 offset = CHUNK_INSTANCE_COUNT * i;
+			chunks[i].Create(position, instances + offset, offset);
 
-			TimeSlip::UploadTiles(sizeof(TileInstance) * CountOf32(instances), instances);
-
-			position.x += CHUNK_SIZE;
-			tileOffset += CHUNK_SIZE;
+			++position.x;
 		}
 
-		tileOffset = 0;
-		position.x = x;
-		position.y += CHUNK_SIZE;
-		startTiles += TILE_COUNT_X * CHUNK_SIZE;
-		startChunks += CHUNK_COUNT_X;
+		position.x = -VIEW_OFFSET_X;
+		++position.y;
 	}
+
+	Timeslip::UploadTiles(sizeof(TileInstance) * CountOf32(instances), instances);
 
 	return true;
 }
@@ -123,110 +106,116 @@ void World::Update(Camera& camera)
 			camera.SetPosition(camera.Position() + Vector3Up * (F32)Time::DeltaTime() * speed);
 		}
 
-		camera.SetPosition(camera.Position().Clamped({ -TILE_COUNT_X / 2 * 3 + 120.0f, -TILE_COUNT_Y / 2 * 3 + 67.5f, 0.0f }, { TILE_COUNT_X / 2 * 3 - 120.0f, TILE_COUNT_Y / 2 * 3 - 67.5f, 0.0f }));
+		camera.SetPosition(camera.Position().Clamped({ -TILE_OFFSET_X * 3 + 120.0f, -TILE_OFFSET_Y * 3 + 67.5f, 0.0f }, { TILE_OFFSET_X * 3 - 120.0f, TILE_OFFSET_Y * 3 - 67.5f, 0.0f }));
 	}
 
-	//TODO: Still breaks at the corners of the world
 	Vector3 pos = -camera.Position() / 24;
 	if (pos.x < 0.0f) { pos.x -= 1.0f; }
 	if (pos.y < 0.0f) { pos.y -= 1.0f; }
-	chunkPos = Vector2Int{ (I32)pos.x, (I32)pos.y }.Clamped({ -CHUNK_COUNT_X / 2 + 5, -CHUNK_COUNT_Y / 2 + 3 }, { CHUNK_COUNT_X / 2 - 6, CHUNK_COUNT_Y / 2 - 4 });
-	
+	chunkPos = Vector2Int{ (I32)pos.x, (I32)pos.y }.Clamped({ FIRST_CHUNK_X, FIRST_CHUNK_Y }, { LAST_CHUNK_X, LAST_CHUNK_Y });
+
+	BufferCopy writes[VIEW_CHUNKS_X + VIEW_CHUNKS_Y];
+	U32 writeCount = 0;
+
 	if (chunkPos != prevChunkPos)
 	{
 		bool loadHorizontal = false;
-		TileInstance instances[192];
 
 		if (chunkPos.x > prevChunkPos.x) //Unload left, load right
 		{
 			loadHorizontal = true;
-			Tile* startTiles = GetTile((I16)((prevChunkPos.x - VIEW_CHUNKS_X / 2) * CHUNK_SIZE), (I16)((prevChunkPos.y + VIEW_CHUNKS_Y / 2) * CHUNK_SIZE));
-			Chunk* oldChunk = GetChunk((I16)(prevChunkPos.x - VIEW_CHUNKS_X / 2), (I16)(prevChunkPos.y - VIEW_CHUNKS_Y / 2));
-			Chunk* newChunk = GetChunk((I16)(prevChunkPos.x + VIEW_CHUNKS_X / 2), (I16)(prevChunkPos.y - VIEW_CHUNKS_Y / 2));
-			Vector2Int position = (prevChunkPos + Vector2Int{ VIEW_CHUNKS_X / 2, -VIEW_CHUNKS_Y / 2 }) * CHUNK_SIZE;
-			
+			Chunk* chunk = chunks + leftIndex;
+
 			for (U32 y = 0; y < VIEW_CHUNKS_Y; ++y)
 			{
-				U32 index = oldChunk->Unload();
+				chunk->Load(1);
 
-				newChunk->Load(startTiles, position, instances, index);
+				BufferCopy write{};
+				write.srcOffset = sizeof(TileInstance) * chunk->offset;
+				write.dstOffset = write.srcOffset;
+				write.size = sizeof(TileInstance) * CHUNK_INSTANCE_COUNT;
 
-				TimeSlip::UpdateTiles(sizeof(TileInstance) * CountOf32(instances), sizeof(TileInstance) * CountOf32(instances) * index, instances); //TODO: batch these
+				writes[writeCount++] = write;
 
-				oldChunk += CHUNK_COUNT_X;
-				newChunk += CHUNK_COUNT_X;
-				startTiles += TILE_COUNT_X * CHUNK_SIZE;
-				position.y += CHUNK_SIZE;
+				chunk += VIEW_CHUNKS_X;
 			}
+
+			++leftIndex %= VIEW_CHUNKS_X;
+			++rightIndex %= VIEW_CHUNKS_X;
 		}
 		else if (chunkPos.x < prevChunkPos.x) //Unload right, load left
 		{
 			loadHorizontal = true;
-			Tile* startTiles = GetTile((I16)((prevChunkPos.x + VIEW_CHUNKS_X / 2) * CHUNK_SIZE), (I16)((prevChunkPos.y + VIEW_CHUNKS_Y / 2) * CHUNK_SIZE));
-			Chunk* oldChunk = GetChunk((I16)(prevChunkPos.x + VIEW_CHUNKS_X / 2 - 1), (I16)(prevChunkPos.y - VIEW_CHUNKS_Y / 2));
-			Chunk* newChunk = GetChunk((I16)(prevChunkPos.x - VIEW_CHUNKS_X / 2 - 1), (I16)(prevChunkPos.y - VIEW_CHUNKS_Y / 2));
-			Vector2Int position = (prevChunkPos - Vector2Int{ VIEW_CHUNKS_X / 2, VIEW_CHUNKS_Y / 2 }) * CHUNK_SIZE;
+			Chunk* chunk = chunks + rightIndex;
 
 			for (U32 y = 0; y < VIEW_CHUNKS_Y; ++y)
 			{
-				U32 index = oldChunk->Unload();
+				chunk->Load(0);
 
-				newChunk->Load(startTiles, position, instances, index);
+				BufferCopy write{};
+				write.srcOffset = sizeof(TileInstance) * chunk->offset;
+				write.dstOffset = write.srcOffset;
+				write.size = sizeof(TileInstance) * CHUNK_INSTANCE_COUNT;
 
-				TimeSlip::UpdateTiles(sizeof(TileInstance) * CountOf32(instances), sizeof(TileInstance) * CountOf32(instances) * index, instances); //TODO: batch these
+				writes[writeCount++] = write;
 
-				oldChunk += CHUNK_COUNT_X;
-				newChunk += CHUNK_COUNT_X;
-				startTiles += TILE_COUNT_X * CHUNK_SIZE;
-				position.y += CHUNK_SIZE;
+				chunk += VIEW_CHUNKS_X;
 			}
+
+			if (--leftIndex == U8_MAX) { leftIndex = VIEW_CHUNKS_X - 1; }
+			if (--rightIndex == U8_MAX) { rightIndex = VIEW_CHUNKS_X - 1; }
 		}
 
 		if (chunkPos.y > prevChunkPos.y) //unload bottom, load top
 		{
 			if (loadHorizontal) { prevChunkPos.x = chunkPos.x; }
 
-			Tile* startTiles = GetTile((I16)((prevChunkPos.x - VIEW_CHUNKS_X / 2) * CHUNK_SIZE), (I16)((prevChunkPos.y + VIEW_CHUNKS_Y / 2) * CHUNK_SIZE));
-			Chunk* oldChunk = GetChunk((I16)(prevChunkPos.x - VIEW_CHUNKS_X / 2), (I16)(prevChunkPos.y - VIEW_CHUNKS_Y / 2));
-			Chunk* newChunk = GetChunk((I16)(prevChunkPos.x - VIEW_CHUNKS_X / 2), (I16)(prevChunkPos.y + VIEW_CHUNKS_Y / 2));
-			Vector2Int position = (prevChunkPos + Vector2Int{ -VIEW_CHUNKS_X / 2, VIEW_CHUNKS_Y / 2 }) * CHUNK_SIZE;
+			Chunk* chunk = chunks + bottomIndex * VIEW_CHUNKS_X;
 
 			for (U32 x = 0; x < VIEW_CHUNKS_X; ++x)
 			{
-				U32 index = oldChunk->Unload();
+				chunk->Load(2);
 
-				newChunk->Load(startTiles, position, instances, index);
+				BufferCopy write{};
+				write.srcOffset = sizeof(TileInstance) * chunk->offset;
+				write.dstOffset = write.srcOffset;
+				write.size = sizeof(TileInstance) * CHUNK_INSTANCE_COUNT;
 
-				TimeSlip::UpdateTiles(sizeof(TileInstance) * CountOf32(instances), sizeof(TileInstance) * CountOf32(instances) * index, instances); //TODO: batch these
+				writes[writeCount++] = write;
 
-				oldChunk += 1;
-				newChunk += 1;
-				startTiles += CHUNK_SIZE;
-				position.x += CHUNK_SIZE;
+				++chunk;
 			}
+
+			++bottomIndex %= VIEW_CHUNKS_Y;
+			++topIndex %= VIEW_CHUNKS_Y;
 		}
 		else if (chunkPos.y < prevChunkPos.y) //unload top, load bottom
 		{
 			if (loadHorizontal) { prevChunkPos.x = chunkPos.x; }
 
-			Tile* startTiles = GetTile((I16)((prevChunkPos.x - VIEW_CHUNKS_X / 2) * CHUNK_SIZE), (I16)((prevChunkPos.y - VIEW_CHUNKS_Y / 2) * CHUNK_SIZE));
-			Chunk* oldChunk = GetChunk((I16)(prevChunkPos.x - VIEW_CHUNKS_X / 2), (I16)(prevChunkPos.y + VIEW_CHUNKS_Y / 2 - 1));
-			Chunk* newChunk = GetChunk((I16)(prevChunkPos.x - VIEW_CHUNKS_X / 2), (I16)(prevChunkPos.y - VIEW_CHUNKS_Y / 2 - 1));
-			Vector2Int position = (prevChunkPos + Vector2Int{ -VIEW_CHUNKS_X / 2, -VIEW_CHUNKS_Y / 2 }) * CHUNK_SIZE;
+			Chunk* chunk = chunks + topIndex * VIEW_CHUNKS_X;
 
 			for (U32 x = 0; x < VIEW_CHUNKS_X; ++x)
 			{
-				U32 index = oldChunk->Unload();
+				chunk->Load(3);
 
-				newChunk->Load(startTiles, position, instances, index);
+				BufferCopy write{};
+				write.srcOffset = sizeof(TileInstance) * chunk->offset;
+				write.dstOffset = write.srcOffset;
+				write.size = sizeof(TileInstance) * CHUNK_INSTANCE_COUNT;
 
-				TimeSlip::UpdateTiles(sizeof(TileInstance) * CountOf32(instances), sizeof(TileInstance) * CountOf32(instances) * index, instances); //TODO: batch these
+				writes[writeCount++] = write;
 
-				oldChunk += 1;
-				newChunk += 1;
-				startTiles += CHUNK_SIZE;
-				position.x += CHUNK_SIZE;
+				++chunk;
 			}
+
+			if (--bottomIndex == U8_MAX) { bottomIndex = VIEW_CHUNKS_Y - 1; }
+			if (--topIndex == U8_MAX) { topIndex = VIEW_CHUNKS_Y - 1; }
+		}
+
+		if (writeCount)
+		{
+			Timeslip::UpdateTiles(writeCount, writes, sizeof(TileInstance) * CHUNK_INSTANCE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y, instances);
 		}
 	}
 
@@ -235,26 +224,25 @@ void World::Update(Camera& camera)
 
 Tile* World::GetTile(I16 x, I16 y)
 {
-	return tiles + TILE_OFFSET_X + x + TILE_COUNT_X * (TILE_OFFSET_Y + y);
-}
+	x += TILE_OFFSET_X;
+	y += TILE_OFFSET_Y;
 
-Chunk* World::GetChunk(I16 x, I16 y)
-{
-	return chunks + CHUNK_OFFSET_X + x + CHUNK_COUNT_X * (CHUNK_OFFSET_Y + y);
+	if (x < 0 || x >= TILE_COUNT_X || y < 0 || y >= TILE_COUNT_Y) { BreakPoint; }
+
+	return tiles + x + TILE_COUNT_X * y;
 }
 
 void World::GenerateWorld()
 {
 	static constexpr F64 frequency = 0.1f;
 
-	for (I16 x = 0; x < TILE_COUNT_X; ++x)
+	for (I16 y = 0; y < TILE_COUNT_Y; ++y)
 	{
-		for (I16 y = 0; y < TILE_COUNT_Y; ++y)
+		for (I16 x = 0; x < TILE_COUNT_X; ++x)
 		{
 			F64 noise = Math::Simplex2((SEED + x) * frequency, (SEED + y) * frequency);
 
-			//TODO: Bias
-			if (noise < 0) { tiles[x + y * TILE_COUNT_X] = {}; }
+			if (noise < 0.0f) { tiles[x + y * TILE_COUNT_X] = {}; }
 			else { tiles[x + y * TILE_COUNT_X] = { 1, 0, U8_MAX }; }
 		}
 	}

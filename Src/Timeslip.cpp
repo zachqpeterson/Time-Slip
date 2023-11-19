@@ -1,4 +1,4 @@
-#include "Time-Slip.hpp"
+#include "Timeslip.hpp"
 
 #include "Resources\ResourceDefines.hpp"
 #include "Resources\Resources.hpp"
@@ -18,17 +18,12 @@ struct TileVertex
 	Vector2 texcoord;
 };
 
-Shader* TimeSlip::tileShader;
-Pipeline* TimeSlip::tilePipeline;
-PipelineGraph TimeSlip::tilePipelineGraph;
-TilePushConstant TimeSlip::tilePushConstant;
+Shader* Timeslip::tileShader;
+Pipeline* Timeslip::tilePipeline;
+PipelineGraph Timeslip::tilePipelineGraph;
+TilePushConstant Timeslip::tilePushConstant;
 
-Scene* TimeSlip::gameScene;
-
-constexpr F32 TILE_WIDTH = 3.0f;
-constexpr F32 TILE_HEIGHT = 3.0f;
-constexpr F32 TILE_TEX_WIDTH = 1.0f / 6.0f;
-constexpr F32 TILE_TEX_HEIGHT = 1.0f / 8.0f;
+Scene* Timeslip::gameScene;
 
 String textureNames[]{
 	"textures/GrasslandDirt.nhtex",
@@ -39,7 +34,7 @@ String textureNames[]{
 
 U32 textureIndices[CountOf(textureNames)];
 
-bool TimeSlip::Initialize()
+bool Timeslip::Initialize()
 {
 	//SamplerInfo sampler{};
 	//sampler.minFilter = FILTER_TYPE_NEAREST;
@@ -124,14 +119,14 @@ bool TimeSlip::Initialize()
 
 	tilePipeline->UploadIndices(sizeof(U32) * CountOf32(indices), indices);
 	tilePipeline->UploadVertices(sizeof(TileVertex) * CountOf32(vertices), vertices);
-	tilePipeline->UploadDrawCall(6, 0, 0, 12 * 8 * 192, 0);
+	tilePipeline->UploadDrawCall(6, 0, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_INSTANCE_COUNT, 0);
 
 	World::Initialize(WORLD_SIZE_LARGE);
 
 	return true;
 }
 
-void TimeSlip::Shutdown()
+void Timeslip::Shutdown()
 {
 	World::Shutdown();
 
@@ -143,27 +138,22 @@ void TimeSlip::Shutdown()
 	}
 }
 
-void TimeSlip::Update()
+void Timeslip::Update()
 {
 	World::Update(gameScene->camera);
 }
 
-void TimeSlip::UploadTiles(U32 size, void* data)
+void Timeslip::UploadTiles(U32 size, void* data)
 {
 	tilePipeline->UploadInstances(size, data);
 }
 
-void TimeSlip::UpdateTiles(U32 size, U32 offset, void* data)
+void Timeslip::UpdateTiles(U32 writeCount, BufferCopy* writes, U32 size, void* data)
 {
-	BufferCopy copy{};
-	copy.size = size;
-	copy.srcOffset = 0;
-	copy.dstOffset = offset;
-
-	tilePipeline->UpdateInstances(size, data, 1, &copy);
+	tilePipeline->UpdateInstances(size, data, writeCount, writes);
 }
 
-U32 TimeSlip::GetTextureIndex(U32 id)
+U32 Timeslip::GetTextureIndex(U32 id)
 {
 	if (id == 255) { return U16_MAX; }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Defines.hpp"
+#include "TimeslipDefines.hpp"
 
 #include "Resources\ResourceDefines.hpp"
 #include "Math\Math.hpp"
@@ -13,8 +13,9 @@ struct TilePushConstant
 struct Scene;
 struct Shader;
 struct Pipeline;
+struct BufferCopy;
 
-class TimeSlip
+class Timeslip
 {
 public:
 	static bool Initialize();
@@ -23,7 +24,7 @@ public:
 	static void Update();
 
 	static void UploadTiles(U32 size, void* data);
-	static void UpdateTiles(U32 size, U32 offset, void* data);
+	static void UpdateTiles(U32 writeCount, BufferCopy* writes, U32 size, void* data);
 	static U32 GetTextureIndex(U32 id);
 
 private:
@@ -34,5 +35,5 @@ private:
 
 	static Scene* gameScene;
 
-	STATIC_CLASS(TimeSlip);
+	STATIC_CLASS(Timeslip);
 };

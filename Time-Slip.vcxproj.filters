@@ -14,7 +14,7 @@
     <ClCompile Include="Src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Time-Slip.cpp">
+    <ClCompile Include="Src\Timeslip.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Src\World.cpp">
@@ -25,7 +25,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Src\Time-Slip.hpp">
+    <ClInclude Include="Src\Timeslip.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Src\World.hpp">
@@ -35,6 +35,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Src\Chunk.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\TimeslipDefines.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,6 +4,7 @@
 
 #include "Containers\Hashmap.hpp"
 #include "Containers\Queue.hpp"
+#include "Containers\Freelist.hpp"
 #include "CommandBuffer.hpp"
 #include "Swapchain.hpp"
 #include "Pipeline.hpp"
@@ -16,6 +17,7 @@ struct VkDevice_T;
 struct VkInstance_T;
 struct VkSemaphore_T;
 struct VmaAllocator_T;
+struct VkCommandBuffer_T;
 struct VkPhysicalDevice_T;
 struct VkDescriptorPool_T;
 struct VkDebugUtilsMessengerEXT_T;
@@ -44,6 +46,29 @@ struct PostProcessData
 	F32 gammaCorrection{ 1.0f };
 };
 
+struct CommandBufferRing
+{
+	void							Create();
+	void							Destroy();
+
+	void							ResetDrawPool();
+	void							ResetDraw(U32 frameIndex);
+	void							ResetPool(U32 frameIndex);
+
+	CommandBuffer*					GetDrawCommandBuffer(U32 frameIndex);
+	CommandBuffer*					GetWriteCommandBuffer(U32 frameIndex);
+
+	static constexpr U16			maxPools = MAX_SWAPCHAIN_IMAGES;
+	static constexpr U16			buffersPerPool = 128;
+	static constexpr U16			maxBuffers = buffersPerPool * maxPools;
+
+	VkCommandPool_T*				drawCommandPool;
+	VkCommandPool_T*				commandPools[maxPools];
+	CommandBuffer					drawCommandBuffers[maxPools];
+	CommandBuffer					commandBuffers[maxBuffers];
+	Freelist						freeCommandBuffers[maxPools];
+};
+
 //Post Processing		
 //TODO: Bloom			
 //TODO: Fog				
@@ -55,6 +80,11 @@ struct PostProcessData
 //TODO: Saturation		✓
 //TODO: Tonemapping		✓
 //TODO: Gamma			✓
+
+//General
+//TODO: Switch to Sync2
+//TODO: Aggregate all buffer writes into one queue submit
+//TODO: One frame command buffer per swapchain image
 class NH_API Renderer
 {
 public:
@@ -86,6 +116,7 @@ private:
 	static bool							GetFamilyQueue(VkPhysicalDevice_T* gpu);
 	static bool							CreateDevice();
 	static bool							CreateResources();
+	static bool							InitialSubmit();
 
 	static bool							BeginFrame();
 	static void							EndFrame();
@@ -94,9 +125,6 @@ private:
 	static void							SetRenderArea();
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
-	static void							FrameCountersAdvance();
-	
-	static CommandBuffer*				GetCommandBuffer();
 
 	static Buffer						CreateBuffer(U32 size, U32 usageFlags, U32 memoryFlags);
 	static void							FillBuffer(Buffer& buffer, U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);
@@ -136,7 +164,7 @@ private:
 	static U32									queueFamilyIndex;
 
 	static VkAllocationCallbacks*				allocationCallbacks;
-	static VkDescriptorPool_T*					descriptorPool;
+	static VkDescriptorPool_T*					descriptorPools[MAX_SWAPCHAIN_IMAGES];
 	static U64									uboAlignment;
 	static U64									sboAlignemnt;
 
@@ -147,7 +175,6 @@ private:
 	// WINDOW
 	static Vector4								renderArea;
 	static U32									frameIndex;
-	static U32									currentFrame;
 	static U32									previousFrame;
 	static U32									absoluteFrame;
 	static bool									resized;
@@ -156,6 +183,7 @@ private:
 	static Scene*								currentScene;
 	static VmaAllocator_T*						allocator;
 	static CommandBufferRing					commandBufferRing;
+	static Vector<VkCommandBuffer_T*>			commandBuffers[MAX_SWAPCHAIN_IMAGES];
 	static Buffer								stagingBuffer;
 	static Buffer								materialBuffer;
 	static CameraData							cameraData;
@@ -164,7 +192,9 @@ private:
 
 	// SYNCRONIZATION
 	static VkSemaphore_T*						imageAcquired;
-	static VkSemaphore_T*						queueSubmitted;
+	static VkSemaphore_T*						queueSubmitted[MAX_SWAPCHAIN_IMAGES];
+	static VkSemaphore_T*						frameReady[MAX_SWAPCHAIN_IMAGES];
+	static U64									waitValues[MAX_SWAPCHAIN_IMAGES];
 
 	// DEBUG
 	static VkDebugUtilsMessengerEXT_T*			debugMessenger;
