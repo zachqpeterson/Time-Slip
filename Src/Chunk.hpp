@@ -8,11 +8,15 @@ struct Vector2Int;
 
 struct Chunk
 {
-	void Create(const Vector2Int& position, TileInstance* instances, U32 offset);
+private:
+	void Create(const Vector2Int& position, TileInstance* wallInstances, TileInstance* blockInstances, TileInstance* decorationInstances, U32 offset);
 	void Load(U8 direction);
 
-private:
-	TileInstance* instances;
+	void LoadTiles();
+
+	TileInstance* wallInstances;
+	TileInstance* blockInstances;
+	TileInstance* decorationInstances;
 	Vector2Int position;
 	U32 offset;
 

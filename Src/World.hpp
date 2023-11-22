@@ -6,7 +6,7 @@
 
 struct TileInstance
 {
-	Vector3 position;
+	Vector2 position;
 	Vector2 texcoord;
 	Vector3 color;
 	U32 texIndex;
@@ -45,13 +45,15 @@ private:
 	static Vector2Int chunkPos;
 	static Vector2Int prevChunkPos;
 
-	static TileInstance instances[];
+	static TileInstance* wallInstances;
+	static TileInstance* blockInstances;
+	static TileInstance* decorationInstances;
 	static Tile* tiles;
 	static Chunk chunks[];
-	static U8 leftIndex;
-	static U8 rightIndex;
-	static U8 bottomIndex;
-	static U8 topIndex;
+	static U16 leftIndex;
+	static U16 rightIndex;
+	static U16 bottomIndex;
+	static U16 topIndex;
 
 	STATIC_CLASS(World);
 	friend class Timeslip;

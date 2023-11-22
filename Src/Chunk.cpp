@@ -6,47 +6,15 @@
 #include "World.hpp"
 #include "Tile.hpp"
 
-void Chunk::Create(const Vector2Int& position_, TileInstance* instances, U32 offset)
+void Chunk::Create(const Vector2Int& position_, TileInstance* wallInstances, TileInstance* blockInstances, TileInstance* decorationInstances, U32 offset)
 {
-	this->instances = instances;
+	this->blockInstances = blockInstances;
+	this->wallInstances = wallInstances;
+	this->decorationInstances = decorationInstances;
 	this->offset = offset;
 	position = position_ * CHUNK_SIZE;
 
-	Vector2 pos = position * Vector2{ TILE_WIDTH, TILE_HEIGHT };
-
-	Tile* tile = World::GetTile(position.x, position.y);
-	TileInstance* instance = instances;
-
-	for (U32 y = 0; y < 8; ++y)
-	{
-		for (U32 x = 0; x < 8; ++x)
-		{
-			instance->color = Vector3One;
-			instance->position = Vector3{ pos, 3.0f };
-			instance->texcoord = Vector2Zero;
-			instance->texIndex = Timeslip::GetTextureIndex(tile->decoration);
-			++instance;
-
-			instance->color = Vector3One;
-			instance->position = Vector3{ pos, 4.0f };
-			instance->texcoord = Vector2Zero;
-			instance->texIndex = Timeslip::GetTextureIndex(tile->block);
-			++instance;
-
-			instance->color = Vector3One;
-			instance->position = Vector3{ pos, 5.0f };
-			instance->texcoord = Vector2Zero;
-			instance->texIndex = Timeslip::GetTextureIndex(tile->wall);
-			++instance;
-
-			pos.x += TILE_WIDTH;
-			++tile;
-		}
-
-		pos.x = position.x * TILE_WIDTH;
-		pos.y += TILE_HEIGHT;
-		tile += World::TILE_COUNT_X - 8;
-	}
+	LoadTiles();
 }
 
 void Chunk::Load(U8 direction)
@@ -59,32 +27,39 @@ void Chunk::Load(U8 direction)
 	case 3: { position.y -= VIEW_CHUNKS_Y * CHUNK_SIZE; } break; //down
 	}
 
+	LoadTiles();
+}
+
+void Chunk::LoadTiles()
+{
 	Vector2 pos = position * Vector2{ TILE_WIDTH, TILE_HEIGHT };
 
 	Tile* tile = World::GetTile(position.x, position.y);
-	TileInstance* instance = instances;
+	TileInstance* decorationInstance = decorationInstances;
+	TileInstance* blockInstance = blockInstances;
+	TileInstance* wallInstance = wallInstances;
 
 	for (U32 y = 0; y < 8; ++y)
 	{
 		for (U32 x = 0; x < 8; ++x)
 		{
-			instance->color = Vector3One;
-			instance->position = Vector3{ pos, 3.0f };
-			instance->texcoord = Vector2Zero;
-			instance->texIndex = Timeslip::GetTextureIndex(tile->decoration);
-			++instance;
+			decorationInstance->position = pos;
+			decorationInstance->texcoord = Vector2Zero;
+			decorationInstance->color = Vector3One;
+			decorationInstance->texIndex = Timeslip::GetTextureIndex(tile->decoration);
+			++decorationInstance;
 
-			instance->color = Vector3One;
-			instance->position = Vector3{ pos, 4.0f };
-			instance->texcoord = Vector2Zero;
-			instance->texIndex = Timeslip::GetTextureIndex(tile->block);
-			++instance;
+			blockInstance->position = pos;
+			blockInstance->texcoord = Vector2Zero;
+			blockInstance->color = Vector3One;
+			blockInstance->texIndex = Timeslip::GetTextureIndex(tile->block);
+			++blockInstance;
 
-			instance->color = Vector3One;
-			instance->position = Vector3{ pos, 5.0f };
-			instance->texcoord = Vector2Zero;
-			instance->texIndex = Timeslip::GetTextureIndex(tile->wall);
-			++instance;
+			wallInstance->position = pos;
+			wallInstance->texcoord = Vector2Zero;
+			wallInstance->color = Vector3One;
+			wallInstance->texIndex = Timeslip::GetTextureIndex(tile->wall);
+			++wallInstance;
 
 			pos.x += TILE_WIDTH;
 			++tile;

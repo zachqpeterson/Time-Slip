@@ -29,10 +29,10 @@ layout(push_constant) uniform block
 	CameraData cameraData;
 };
 
-layout (location = 0) in vec2 position;
+layout (location = 0) in vec3 position;
 layout (location = 1) in vec2 texcoord;
 
-layout (location = 2) in vec3 instPosition;
+layout (location = 2) in vec2 instPosition;
 layout (location = 3) in vec2 instTexcoord;
 layout (location = 4) in vec3 instColor;
 layout (location = 5) in uint texIndex;
@@ -43,7 +43,7 @@ layout (location = 2) flat out uint outTexIndex;
 
 void main()
 {
-    vec4 worldPosition = vec4(position.xy + instPosition.xy, instPosition.z, 1.0);
+    vec4 worldPosition = vec4(position.xy + instPosition.xy, position.z, 1.0);
     gl_Position = cameraData.viewProjection * worldPosition;
     outTexcoord = texcoord + instTexcoord;
     outColor = instColor * globalTileData.globalColor.rgb;
@@ -70,5 +70,7 @@ void main()
     if(texIndex == INVALID_TEXTURE_INDEX) { discard; }
 
     outColor = texture(globalTextures[texIndex], texcoord) * vec4(color, 1.0);
+
+    if(outColor.a < 0.1) { discard; }
 }
 #FRAGMENT_END

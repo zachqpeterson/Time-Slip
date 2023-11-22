@@ -14,7 +14,7 @@
 
 struct TileVertex
 {
-	Vector2 position;
+	Vector3 position;
 	Vector2 texcoord;
 };
 
@@ -82,13 +82,23 @@ bool Timeslip::Initialize()
 		textureIndices[i++] = (U32)Resources::LoadTexture(name)->handle;
 	}
 
-	U32 indices[]{ 0, 2, 1, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
+	U32 indices[]{ 0, 2, 1, 2, 3, 1,   4, 6, 5, 6, 7, 5,   8, 10, 9, 10, 11, 9,   12, 14, 13, 14, 15, 13,   16, 18, 17, 18, 19, 17 };
 
 	TileVertex vertices[]{
-		{ { 0.0f, TILE_HEIGHT },		{ 0.0f, TILE_TEX_HEIGHT } },
-		{ { TILE_WIDTH, TILE_HEIGHT },	{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT } },
-		{ { 0.0f, 0.0f },				{ 0.0f, 0.0f } },
-		{ { TILE_WIDTH, 0.0f },			{ TILE_TEX_WIDTH, 0.0f } },
+		{ { 0.0f, TILE_HEIGHT, 1.0f },			{ 0.0f, TILE_TEX_HEIGHT } },
+		{ { TILE_WIDTH, TILE_HEIGHT, 1.0f },	{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT } },
+		{ { 0.0f, 0.0f, 1.0f },					{ 0.0f, 0.0f } },
+		{ { TILE_WIDTH, 0.0f, 1.0f },			{ TILE_TEX_WIDTH, 0.0f } },
+
+		{ { 0.0f, TILE_HEIGHT, 2.0f },			{ 0.0f, TILE_TEX_HEIGHT } },
+		{ { TILE_WIDTH, TILE_HEIGHT, 2.0f },	{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT } },
+		{ { 0.0f, 0.0f, 2.0f },					{ 0.0f, 0.0f } },
+		{ { TILE_WIDTH, 0.0f, 2.0f },			{ TILE_TEX_WIDTH, 0.0f } },
+
+		{ { 0.0f, TILE_HEIGHT, 3.0f },			{ 0.0f, TILE_TEX_HEIGHT } },
+		{ { TILE_WIDTH, TILE_HEIGHT, 3.0f },	{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT } },
+		{ { 0.0f, 0.0f, 3.0f },					{ 0.0f, 0.0f } },
+		{ { TILE_WIDTH, 0.0f, 3.0f },			{ TILE_TEX_WIDTH, 0.0f } },
 	};
 
 	tilePushConstant.globalColor = Vector4One;
@@ -106,7 +116,7 @@ bool Timeslip::Initialize()
 	info.shader = tileShader;
 	info.vertexBufferSize = sizeof(TileVertex) * CountOf32(vertices);
 	info.indexBufferSize = sizeof(U32) * CountOf32(indices);
-	info.drawBufferSize = 20; //VkDrawIndexedIndirectCommand
+	info.drawBufferSize = 60; //VkDrawIndexedIndirectCommand * 3
 	tilePipelineGraph.AddPipeline(info);
 
 	tilePipelineGraph.Create("Tiles");
@@ -119,7 +129,9 @@ bool Timeslip::Initialize()
 
 	tilePipeline->UploadIndices(sizeof(U32) * CountOf32(indices), indices);
 	tilePipeline->UploadVertices(sizeof(TileVertex) * CountOf32(vertices), vertices);
-	tilePipeline->UploadDrawCall(6, 0, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_INSTANCE_COUNT, 0);
+	tilePipeline->UploadDrawCall(6, 0, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT, 0);
+	tilePipeline->UploadDrawCall(6, 6, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT);
+	tilePipeline->UploadDrawCall(6, 12, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT * 2);
 
 	World::Initialize(WORLD_SIZE_LARGE);
 
