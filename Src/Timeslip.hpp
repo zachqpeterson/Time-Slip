@@ -3,12 +3,6 @@
 #include "TimeslipDefines.hpp"
 
 #include "Resources\ResourceDefines.hpp"
-#include "Math\Math.hpp"
-
-struct TilePushConstant
-{
-	Vector4 globalColor;
-};
 
 struct Scene;
 struct Shader;
@@ -23,15 +17,17 @@ public:
 
 	static void Update();
 
-	static void UploadTiles(U32 size, void* data);
-	static void UpdateTiles(U32 writeCount, BufferCopy* writes, U32 size, void* data);
-	static U32 GetTextureIndex(U32 id);
+	static void UploadTiles();
+	static void UpdateTiles(U32 writeCount, BufferCopy* writes);
+	static U32 GetTextureIndex(U32 type, U32 id);
+	static U32 GetMaskIndex(U32 type);
 
 private:
 	static Shader* tileShader;
 	static Pipeline* tilePipeline;
 	static PipelineGraph tilePipelineGraph;
 	static TilePushConstant tilePushConstant;
+	static Buffer stagingBuffer;
 
 	static Scene* gameScene;
 

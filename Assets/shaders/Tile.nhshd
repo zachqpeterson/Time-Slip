@@ -5,7 +5,7 @@ front=CLOCKWISE
 fill=SOLID
 depth=LESS
 blend=ADD
-instanceOffset=2
+instanceOffset=3
 order=0
 #CONFIG_END
 
@@ -31,23 +31,30 @@ layout(push_constant) uniform block
 
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec2 texcoord;
+layout (location = 2) in vec2 maskTexcoord;
 
-layout (location = 2) in vec2 instPosition;
-layout (location = 3) in vec2 instTexcoord;
-layout (location = 4) in vec3 instColor;
-layout (location = 5) in uint texIndex;
+layout (location = 3) in vec2 instPosition;
+layout (location = 4) in vec2 instTexcoord;
+layout (location = 5) in vec2 instMaskTexcoord;
+layout (location = 6) in vec3 instColor;
+layout (location = 7) in uint texIndex;
+layout (location = 8) in uint maskIndex;
 
 layout (location = 0) out vec2 outTexcoord;
-layout (location = 1) out vec3 outColor;
-layout (location = 2) flat out uint outTexIndex;
+layout (location = 1) out vec2 outMaskTexcoord;
+layout (location = 2) out vec3 outColor;
+layout (location = 3) flat out uint outTexIndex;
+layout (location = 4) flat out uint outMaskIndex;
 
 void main()
 {
     vec4 worldPosition = vec4(position.xy + instPosition.xy, position.z, 1.0);
     gl_Position = cameraData.viewProjection * worldPosition;
     outTexcoord = texcoord + instTexcoord;
+    outMaskTexcoord = maskTexcoord + instMaskTexcoord;
     outColor = instColor * globalTileData.globalColor.rgb;
     outTexIndex = texIndex;
+    outMaskIndex = maskIndex;
 }
 #VERTEX_END
 
@@ -56,8 +63,10 @@ void main()
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout (location = 0) in vec2 texcoord;
-layout (location = 1) in vec3 color;
-layout (location = 2) flat in uint texIndex;
+layout (location = 1) in vec2 maskTexcoord;
+layout (location = 2) in vec3 color;
+layout (location = 3) flat in uint texIndex;
+layout (location = 4) flat in uint maskIndex;
 
 layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
 
@@ -71,6 +80,9 @@ void main()
 
     outColor = texture(globalTextures[texIndex], texcoord) * vec4(color, 1.0);
 
-    if(outColor.a < 0.1) { discard; }
+    if(maskIndex == INVALID_TEXTURE_INDEX) { return; }
+    
+    float alpha = texture(globalTextures[maskIndex], maskTexcoord).a;
+    outColor.a = outColor.a * alpha;
 }
 #FRAGMENT_END

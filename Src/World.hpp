@@ -1,18 +1,7 @@
 #pragma once
 
 #include "TimeslipDefines.hpp"
-#include "Math\Math.hpp"
 #include "Containers\Freelist.hpp"
-
-struct TileInstance
-{
-	Vector2 position;
-	Vector2 texcoord;
-	Vector3 color;
-	U32 texIndex;
-};
-
-constexpr U64 size = sizeof(TileInstance);
 
 struct Tile;
 struct Chunk;
@@ -23,8 +12,10 @@ class World
 public:
 	static Tile* GetTile(I16 x, I16 y);
 
+	static const I64& Seed();
+
 private:
-	static bool Initialize(WorldSize size);
+	static bool Initialize(TileInstance* instanceBuffer, WorldSize size);
 	static void Shutdown();
 
 	static void Update(Camera& camera);

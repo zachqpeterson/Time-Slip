@@ -35,6 +35,7 @@ void Chunk::LoadTiles()
 	Vector2 pos = position * Vector2{ TILE_WIDTH, TILE_HEIGHT };
 
 	Tile* tile = World::GetTile(position.x, position.y);
+
 	TileInstance* decorationInstance = decorationInstances;
 	TileInstance* blockInstance = blockInstances;
 	TileInstance* wallInstance = wallInstances;
@@ -43,26 +44,50 @@ void Chunk::LoadTiles()
 	{
 		for (U32 x = 0; x < 8; ++x)
 		{
+			//TODO: guard against out of bounds
+			Tile* leftTile = World::GetTile(position.x + x - 1, position.y + y);
+			Tile* rightTile = World::GetTile(position.x + x + 1, position.y + y);
+			Tile* topTile = World::GetTile(position.x + x, position.y + y + 1);
+			Tile* bottomTile = World::GetTile(position.x + x, position.y + y - 1);
+
+			F32 variation = (((position.x + x) ^ 2 * (position.y + y) + Math::Abs(World::SEED)) % 3) * TILE_TEX_WIDTH;
+
 			decorationInstance->position = pos;
 			decorationInstance->texcoord = Vector2Zero;
+			decorationInstance->maskTexcoord = Vector2Zero;
 			decorationInstance->color = Vector3One;
-			decorationInstance->texIndex = Timeslip::GetTextureIndex(tile->decoration);
-			++decorationInstance;
+			decorationInstance->texIndex = Timeslip::GetTextureIndex(2, tile->decoration);
+			decorationInstance->maskIndex = U16_MAX;
+
+			Vector2 mask = {
+				((leftTile->block != U8_MAX) + (rightTile->block != U8_MAX) * 2.0f) * MASK_TEX_WIDTH,
+				((topTile->block != U8_MAX) + (bottomTile->block != U8_MAX) * 2.0f) * MASK_TEX_HEIGHT
+			};
 
 			blockInstance->position = pos;
-			blockInstance->texcoord = Vector2Zero;
+			blockInstance->texcoord = { variation, 0.0f };
+			blockInstance->maskTexcoord = mask;
 			blockInstance->color = Vector3One;
-			blockInstance->texIndex = Timeslip::GetTextureIndex(tile->block);
-			++blockInstance;
+			blockInstance->texIndex = Timeslip::GetTextureIndex(1, tile->block);
+			blockInstance->maskIndex = Timeslip::GetMaskIndex(0);
+
+			mask = {
+				((leftTile->wall != U8_MAX) + (rightTile->wall != U8_MAX) * 2.0f) * MASK_TEX_WIDTH,
+				((topTile->wall != U8_MAX) + (bottomTile->wall != U8_MAX) * 2.0f) * MASK_TEX_HEIGHT
+			};
 
 			wallInstance->position = pos;
-			wallInstance->texcoord = Vector2Zero;
+			wallInstance->texcoord = { variation, 0.0f };
+			wallInstance->maskTexcoord = mask;
 			wallInstance->color = Vector3One;
-			wallInstance->texIndex = Timeslip::GetTextureIndex(tile->wall);
-			++wallInstance;
+			wallInstance->texIndex = Timeslip::GetTextureIndex(0, tile->wall);
+			wallInstance->maskIndex = Timeslip::GetMaskIndex(0);
 
 			pos.x += TILE_WIDTH;
 			++tile;
+			++decorationInstance;
+			++blockInstance;
+			++wallInstance;
 		}
 
 		pos.x = position.x * TILE_WIDTH;

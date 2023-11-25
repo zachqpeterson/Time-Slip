@@ -12,93 +12,116 @@
 
 #include "World.hpp"
 
-struct TileVertex
-{
-	Vector3 position;
-	Vector2 texcoord;
-};
-
 Shader* Timeslip::tileShader;
 Pipeline* Timeslip::tilePipeline;
 PipelineGraph Timeslip::tilePipelineGraph;
 TilePushConstant Timeslip::tilePushConstant;
+Buffer Timeslip::stagingBuffer;
 
 Scene* Timeslip::gameScene;
 
-String textureNames[]{
-	"textures/GrasslandDirt.nhtex",
-	"textures/GrasslandDirtWall.nhtex",
-	"textures/GrasslandStone.nhtex",
-	"textures/GrasslandDirtWall.nhtex",
+String textureNames[][3]{
+	{
+		"textures/GrasslandDirtWall.nhtex",
+		"textures/GrasslandStoneWall.nhtex",
+	},
+	{
+		"textures/GrasslandDirt.nhtex",
+		"textures/GrasslandStone.nhtex",
+	},
+	{
+		"textures/Grass.nhtex",
+	}
 };
 
-U32 textureIndices[CountOf(textureNames)];
+String maskNames[]{
+	"textures/TileMask.nhtex"
+};
+
+//TODO: Type Traits to automate this
+U32 textureIndices[Math::Max(CountOf(textureNames[0]), Math::Max(CountOf(textureNames[1]), CountOf(textureNames[2])))][CountOf(textureNames)];
+U32 maskIndices[CountOf(maskNames)];
 
 bool Timeslip::Initialize()
 {
-	//SamplerInfo sampler{};
-	//sampler.minFilter = FILTER_TYPE_NEAREST;
-	//sampler.magFilter = FILTER_TYPE_NEAREST;
-	//sampler.mipFilter = SAMPLER_MIPMAP_MODE_NEAREST;
-	//
-	//Resources::UploadTexture("CoalOre.bmp", sampler);
-	//Resources::UploadTexture("CopperOre.bmp", sampler);
-	//Resources::UploadTexture("DesertDirt.bmp", sampler);
-	//Resources::UploadTexture("DesertDirtWall.bmp", sampler);
-	//Resources::UploadTexture("DesertStone.bmp", sampler);
-	//Resources::UploadTexture("DesertStoneWall.bmp", sampler);
-	//Resources::UploadTexture("Flint.bmp", sampler);
-	//Resources::UploadTexture("Grass.bmp", sampler);
-	//Resources::UploadTexture("GrasslandDirt.bmp", sampler);
-	//Resources::UploadTexture("GrasslandDirtWall.bmp", sampler);
-	//Resources::UploadTexture("GrasslandStone.bmp", sampler);
-	//Resources::UploadTexture("GrasslandStoneWall.bmp", sampler);
-	//Resources::UploadTexture("IronOre.bmp", sampler);
-	//Resources::UploadTexture("Items.bmp", sampler);
-	//Resources::UploadTexture("JungleDirt.bmp", sampler);
-	//Resources::UploadTexture("JungleDirtWall.bmp", sampler);
-	//Resources::UploadTexture("JungleStone.bmp", sampler);
-	//Resources::UploadTexture("JungleStoneWall.bmp", sampler);
-	//Resources::UploadTexture("MarshDirt.bmp", sampler);
-	//Resources::UploadTexture("MarshDirtWall.bmp", sampler);
-	//Resources::UploadTexture("MarshStone.bmp", sampler);
-	//Resources::UploadTexture("MarshStoneWall.bmp", sampler);
-	//Resources::UploadTexture("MesaDirt.bmp", sampler);
-	//Resources::UploadTexture("MesaDirtWall.bmp", sampler);
-	//Resources::UploadTexture("MesaStone.bmp", sampler);
-	//Resources::UploadTexture("MesaStoneWall.bmp", sampler);
-	//Resources::UploadTexture("Player.bmp", sampler);
-	//Resources::UploadTexture("Shrub.bmp", sampler);
-	//Resources::UploadTexture("TallGrass.bmp", sampler);
-	//Resources::UploadTexture("TinOre.bmp", sampler);
-	//Resources::UploadTexture("Torch.bmp", sampler);
-	//Resources::UploadTexture("Water.bmp", sampler);
-	//Resources::UploadTexture("Wood.bmp", sampler);
-	//Resources::UploadTexture("UI.bmp", sampler);
+	TextureUpload upload{};
+	upload.samplerInfo.minFilter = FILTER_TYPE_NEAREST;
+	upload.samplerInfo.magFilter = FILTER_TYPE_NEAREST;
+	upload.samplerInfo.mipFilter = SAMPLER_MIPMAP_MODE_NEAREST;
+	upload.usage = TEXTURE_USAGE_COLOR;
 
-	U32 i = 0;
-	for (const String& name : textureNames)
+	//Resources::UploadTexture("CoalOre.bmp", upload);
+	//Resources::UploadTexture("CopperOre.bmp", upload);
+	//Resources::UploadTexture("DesertDirt.bmp", upload);
+	//Resources::UploadTexture("DesertDirtWall.bmp", upload);
+	//Resources::UploadTexture("DesertStone.bmp", upload);
+	//Resources::UploadTexture("DesertStoneWall.bmp", upload);
+	//Resources::UploadTexture("Flint.bmp", upload);
+	//Resources::UploadTexture("Grass.bmp", upload);
+	//Resources::UploadTexture("GrasslandDirt.bmp", upload);
+	//Resources::UploadTexture("GrasslandDirtWall.bmp", upload);
+	//Resources::UploadTexture("GrasslandStone.bmp", upload);
+	//Resources::UploadTexture("GrasslandStoneWall.bmp", upload);
+	//Resources::UploadTexture("IronOre.bmp", upload);
+	//Resources::UploadTexture("Items.bmp", upload);
+	//Resources::UploadTexture("JungleDirt.bmp", upload);
+	//Resources::UploadTexture("JungleDirtWall.bmp", upload);
+	//Resources::UploadTexture("JungleStone.bmp", upload);
+	//Resources::UploadTexture("JungleStoneWall.bmp", upload);
+	//Resources::UploadTexture("MarshDirt.bmp", upload);
+	//Resources::UploadTexture("MarshDirtWall.bmp", upload);
+	//Resources::UploadTexture("MarshStone.bmp", upload);
+	//Resources::UploadTexture("MarshStoneWall.bmp", upload);
+	//Resources::UploadTexture("MesaDirt.bmp", upload);
+	//Resources::UploadTexture("MesaDirtWall.bmp", upload);
+	//Resources::UploadTexture("MesaStone.bmp", upload);
+	//Resources::UploadTexture("MesaStoneWall.bmp", upload);
+	//Resources::UploadTexture("Player.bmp", upload);
+	//Resources::UploadTexture("Shrub.bmp", upload);
+	//Resources::UploadTexture("TallGrass.bmp", upload);
+	//Resources::UploadTexture("TinOre.bmp", upload);
+	//Resources::UploadTexture("Torch.bmp", upload);
+	//Resources::UploadTexture("Water.bmp", upload);
+	//Resources::UploadTexture("Wood.bmp", upload);
+	//Resources::UploadTexture("UI.bmp", upload);
+
+	//upload.usage = TEXTURE_USAGE_MASK;
+
+	Resources::UploadTexture("TileMask.bmp", upload);
+
+	for (U32 i = 0; i < CountOf(textureNames); ++i)
 	{
-		textureIndices[i++] = (U32)Resources::LoadTexture(name)->handle;
+		U32 j = 0;
+		for (const String& name : textureNames[i])
+		{
+			if (!name) { break; }
+			textureIndices[i][j++] = (U32)Resources::LoadTexture(name)->handle;
+		}
 	}
 
+	U32 i = 0;
+	for (const String& name : maskNames)
+	{
+		maskIndices[i++] = (U32)Resources::LoadTexture(name)->handle;
+	}
+	
 	U32 indices[]{ 0, 2, 1, 2, 3, 1,   4, 6, 5, 6, 7, 5,   8, 10, 9, 10, 11, 9,   12, 14, 13, 14, 15, 13,   16, 18, 17, 18, 19, 17 };
 
 	TileVertex vertices[]{
-		{ { 0.0f, TILE_HEIGHT, 1.0f },			{ 0.0f, TILE_TEX_HEIGHT } },
-		{ { TILE_WIDTH, TILE_HEIGHT, 1.0f },	{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT } },
-		{ { 0.0f, 0.0f, 1.0f },					{ 0.0f, 0.0f } },
-		{ { TILE_WIDTH, 0.0f, 1.0f },			{ TILE_TEX_WIDTH, 0.0f } },
+		{ { 0.0f, TILE_HEIGHT, 1.0f },			{ 0.0f, 0.0f },							{ 0.0f, 0.0f } },
+		{ { TILE_WIDTH, TILE_HEIGHT, 1.0f },	{ TILE_TEX_WIDTH, 0.0f },				{ MASK_TEX_WIDTH, 0.0f } },
+		{ { 0.0f, 0.0f, 1.0f },					{ 0.0f, TILE_TEX_HEIGHT },				{ 0.0f, MASK_TEX_HEIGHT } },
+		{ { TILE_WIDTH, 0.0f, 1.0f },			{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT },	{ MASK_TEX_WIDTH, MASK_TEX_HEIGHT }	},
 
-		{ { 0.0f, TILE_HEIGHT, 2.0f },			{ 0.0f, TILE_TEX_HEIGHT } },
-		{ { TILE_WIDTH, TILE_HEIGHT, 2.0f },	{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT } },
-		{ { 0.0f, 0.0f, 2.0f },					{ 0.0f, 0.0f } },
-		{ { TILE_WIDTH, 0.0f, 2.0f },			{ TILE_TEX_WIDTH, 0.0f } },
+		{ { 0.0f, TILE_HEIGHT, 2.0f },			{ 0.0f, 0.0f },							{ 0.0f, 0.0f } },
+		{ { TILE_WIDTH, TILE_HEIGHT, 2.0f },	{ TILE_TEX_WIDTH, 0.0f },				{ MASK_TEX_WIDTH, 0.0f } },
+		{ { 0.0f, 0.0f, 2.0f },					{ 0.0f, TILE_TEX_HEIGHT },				{ 0.0f, MASK_TEX_HEIGHT } },
+		{ { TILE_WIDTH, 0.0f, 2.0f },			{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT },	{ MASK_TEX_WIDTH, MASK_TEX_HEIGHT }	},
 
-		{ { 0.0f, TILE_HEIGHT, 3.0f },			{ 0.0f, TILE_TEX_HEIGHT } },
-		{ { TILE_WIDTH, TILE_HEIGHT, 3.0f },	{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT } },
-		{ { 0.0f, 0.0f, 3.0f },					{ 0.0f, 0.0f } },
-		{ { TILE_WIDTH, 0.0f, 3.0f },			{ TILE_TEX_WIDTH, 0.0f } },
+		{ { 0.0f, TILE_HEIGHT, 3.0f },			{ 0.0f, 0.0f },							{ 0.0f, 0.0f } },
+		{ { TILE_WIDTH, TILE_HEIGHT, 3.0f },	{ TILE_TEX_WIDTH, 0.0f },				{ MASK_TEX_WIDTH, 0.0f } },
+		{ { 0.0f, 0.0f, 3.0f },					{ 0.0f, TILE_TEX_HEIGHT },				{ 0.0f, MASK_TEX_HEIGHT } },
+		{ { TILE_WIDTH, 0.0f, 3.0f },			{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT },	{ MASK_TEX_WIDTH, MASK_TEX_HEIGHT }	},
 	};
 
 	tilePushConstant.globalColor = Vector4One;
@@ -133,7 +156,9 @@ bool Timeslip::Initialize()
 	tilePipeline->UploadDrawCall(6, 6, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT);
 	tilePipeline->UploadDrawCall(6, 12, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT * 2);
 
-	World::Initialize(WORLD_SIZE_LARGE);
+	stagingBuffer = Renderer::CreateBuffer(sizeof(TileInstance) * CHUNK_INSTANCE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y, BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
+
+	World::Initialize((TileInstance*)stagingBuffer.data, WORLD_SIZE_LARGE);
 
 	return true;
 }
@@ -144,9 +169,12 @@ void Timeslip::Shutdown()
 
 	tilePipelineGraph.Destroy();
 
-	for (String& string : textureNames)
+	for (U32 i = 0; i < CountOf(textureNames); ++i)
 	{
-		string.Destroy();
+		for (String& string : textureNames[i])
+		{
+			string.Destroy();
+		}
 	}
 }
 
@@ -155,19 +183,26 @@ void Timeslip::Update()
 	World::Update(gameScene->camera);
 }
 
-void Timeslip::UploadTiles(U32 size, void* data)
+void Timeslip::UploadTiles()
 {
-	tilePipeline->UploadInstances(size, data);
+	tilePipeline->UploadInstances(stagingBuffer.size, stagingBuffer.data);
 }
 
-void Timeslip::UpdateTiles(U32 writeCount, BufferCopy* writes, U32 size, void* data)
+void Timeslip::UpdateTiles(U32 writeCount, BufferCopy* writes)
 {
-	tilePipeline->UpdateInstances(size, data, writeCount, writes);
+	tilePipeline->UpdateInstances(stagingBuffer, writeCount, writes);
 }
 
-U32 Timeslip::GetTextureIndex(U32 id)
+U32 Timeslip::GetTextureIndex(U32 type, U32 id)
 {
 	if (id == 255) { return U16_MAX; }
 
-	return textureIndices[id];
+	return textureIndices[type][id];
+}
+
+U32 Timeslip::GetMaskIndex(U32 type)
+{
+	if (type == 255) { return U16_MAX; }
+
+	return maskIndices[type];
 }

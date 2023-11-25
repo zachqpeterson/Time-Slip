@@ -3,7 +3,6 @@
 #include "Core\Logger.hpp"
 #include "Memory\Memory.hpp"
 #include "Math\Random.hpp"
-#include "Math\Math.hpp"
 #include "Resources\ResourceDefines.hpp"
 #include "Resources\Settings.hpp"
 #include "Rendering\Pipeline.hpp"
@@ -36,7 +35,7 @@ U16 World::rightIndex{ VIEW_CHUNKS_X - 1 };
 U16 World::bottomIndex{ 0 };
 U16 World::topIndex{ VIEW_CHUNKS_Y - 1 };
 
-bool World::Initialize(WorldSize size)
+bool World::Initialize(TileInstance* instanceBuffer, WorldSize size)
 {
 	SEED = GenerateSeed();
 
@@ -50,9 +49,10 @@ bool World::Initialize(WorldSize size)
 	LAST_CHUNK_Y = TILE_OFFSET_Y / CHUNK_SIZE - VIEW_OFFSET_Y;
 
 	if (!tiles) { Memory::AllocateStaticArray(&tiles, TOTAL_TILE_COUNT); }
-	if (!wallInstances) { Memory::AllocateStaticArray(&wallInstances, CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y); }
-	if (!blockInstances) { Memory::AllocateStaticArray(&blockInstances, CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y); }
-	if (!decorationInstances) { Memory::AllocateStaticArray(&decorationInstances, CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y); }
+
+	wallInstances = instanceBuffer;
+	blockInstances = instanceBuffer + CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
+	decorationInstances = instanceBuffer + CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y * 2;
 
 	GenerateWorld();
 
@@ -73,9 +73,7 @@ bool World::Initialize(WorldSize size)
 		++position.y;
 	}
 
-	Timeslip::UploadTiles(sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y, decorationInstances);
-	Timeslip::UploadTiles(sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y, blockInstances);
-	Timeslip::UploadTiles(sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y, wallInstances);
+	Timeslip::UploadTiles();
 
 	return true;
 }
@@ -121,9 +119,7 @@ void World::Update(Camera& camera)
 	if (pos.y < 0.0f) { pos.y -= 1.0f; }
 	chunkPos = Vector2Int{ (I32)pos.x, (I32)pos.y }.Clamped({ FIRST_CHUNK_X, FIRST_CHUNK_Y }, { LAST_CHUNK_X, LAST_CHUNK_Y });
 
-	BufferCopy decorationWrites[VIEW_CHUNKS_X + VIEW_CHUNKS_Y];
-	BufferCopy blockWrites[VIEW_CHUNKS_X + VIEW_CHUNKS_Y];
-	BufferCopy wallWrites[VIEW_CHUNKS_X + VIEW_CHUNKS_Y];
+	BufferCopy writes[(VIEW_CHUNKS_X + VIEW_CHUNKS_Y) * 3];
 	U32 writeCount = 0;
 
 	//TODO: Edge case of moving multiple chunks in one frame
@@ -146,12 +142,11 @@ void World::Update(Camera& camera)
 				write.dstOffset = write.srcOffset;
 				write.size = sizeof(TileInstance) * CHUNK_TILE_COUNT;
 
-				decorationWrites[writeCount] = write;
+				writes[writeCount++] = write;
 				write.dstOffset += sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
-				blockWrites[writeCount] = write;
+				writes[writeCount++] = write;
 				write.dstOffset += sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
-				wallWrites[writeCount] = write;
-				++writeCount;
+				writes[writeCount++] = write;
 
 				chunk += VIEW_CHUNKS_X;
 			}
@@ -173,12 +168,11 @@ void World::Update(Camera& camera)
 				write.dstOffset = write.srcOffset;
 				write.size = sizeof(TileInstance) * CHUNK_TILE_COUNT;
 
-				decorationWrites[writeCount] = write;
+				writes[writeCount++] = write;
 				write.dstOffset += sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
-				blockWrites[writeCount] = write;
+				writes[writeCount++] = write;
 				write.dstOffset += sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
-				wallWrites[writeCount] = write;
-				++writeCount;
+				writes[writeCount++] = write;
 
 				chunk += VIEW_CHUNKS_X;
 			}
@@ -202,12 +196,11 @@ void World::Update(Camera& camera)
 				write.dstOffset = write.srcOffset;
 				write.size = sizeof(TileInstance) * CHUNK_TILE_COUNT;
 
-				decorationWrites[writeCount] = write;
+				writes[writeCount++] = write;
 				write.dstOffset += sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
-				blockWrites[writeCount] = write;
+				writes[writeCount++] = write;
 				write.dstOffset += sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
-				wallWrites[writeCount] = write;
-				++writeCount;
+				writes[writeCount++] = write;
 
 				++chunk;
 			}
@@ -230,12 +223,11 @@ void World::Update(Camera& camera)
 				write.dstOffset = write.srcOffset;
 				write.size = sizeof(TileInstance) * CHUNK_TILE_COUNT;
 
-				decorationWrites[writeCount] = write;
+				writes[writeCount++] = write;
 				write.dstOffset += sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
-				blockWrites[writeCount] = write;
+				writes[writeCount++] = write;
 				write.dstOffset += sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
-				wallWrites[writeCount] = write;
-				++writeCount;
+				writes[writeCount++] = write;
 
 				++chunk;
 			}
@@ -246,9 +238,7 @@ void World::Update(Camera& camera)
 
 		if (writeCount)
 		{
-			Timeslip::UpdateTiles(writeCount, decorationWrites, sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y, decorationInstances);
-			Timeslip::UpdateTiles(writeCount, blockWrites, sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y, blockInstances);
-			Timeslip::UpdateTiles(writeCount, wallWrites, sizeof(TileInstance) * CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y, wallInstances);
+			Timeslip::UpdateTiles(writeCount, writes);
 		}
 	}
 
@@ -263,6 +253,11 @@ Tile* World::GetTile(I16 x, I16 y)
 	if (x < 0 || x >= TILE_COUNT_X || y < 0 || y >= TILE_COUNT_Y) { BreakPoint; }
 
 	return tiles + x + TILE_COUNT_X * y;
+}
+
+const I64& World::Seed()
+{
+	return SEED;
 }
 
 void World::GenerateWorld()
@@ -282,8 +277,10 @@ void World::GenerateWorld()
 
 		for (I16 y = 0; y < heightmap; ++y)
 		{
-			tiles[x + y * TILE_COUNT_X] = { 1, 0, U8_MAX };
+			tiles[x + y * TILE_COUNT_X] = { 0, 0, U8_MAX };
 		}
+
+		tiles[x + heightmap * TILE_COUNT_X].decoration = 0;
 
 		for (I16 y = heightmap; y < TILE_COUNT_Y; ++y)
 		{
