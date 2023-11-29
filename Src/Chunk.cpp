@@ -53,7 +53,7 @@ void Chunk::LoadTiles()
 			F32 variation = (((position.x + x) ^ 2 * (position.y + y) + Math::Abs(World::SEED)) % 3) * TILE_TEX_WIDTH;
 
 			decorationInstance->position = pos;
-			decorationInstance->texcoord = Vector2Zero;
+			decorationInstance->texcoord = { variation, 0.0f };
 			decorationInstance->maskTexcoord = Vector2Zero;
 			decorationInstance->color = Vector3One;
 			decorationInstance->texIndex = Timeslip::GetTextureIndex(2, tile->decoration);

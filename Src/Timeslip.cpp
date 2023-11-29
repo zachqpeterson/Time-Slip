@@ -20,18 +20,20 @@ Buffer Timeslip::stagingBuffer;
 
 Scene* Timeslip::gameScene;
 
-String textureNames[][3]{
-	{
-		"textures/GrasslandDirtWall.nhtex",
-		"textures/GrasslandStoneWall.nhtex",
-	},
-	{
-		"textures/GrasslandDirt.nhtex",
-		"textures/GrasslandStone.nhtex",
-	},
-	{
-		"textures/Grass.nhtex",
-	}
+String wallTextureNames[]{
+	"textures/GrasslandDirtWall.nhtex",
+};
+
+String blockTextureNames[]{
+	"textures/GrasslandDirt.nhtex",
+};
+
+String decorationTextureNames[]{
+	"textures/GrasslandGrass.nhtex",
+	"textures/MesaGrass.nhtex",
+	"textures/DesertGrass.nhtex",
+	"textures/MarshGrass.nhtex",
+	"textures/JungleGrass.nhtex",
 };
 
 String maskNames[]{
@@ -39,7 +41,7 @@ String maskNames[]{
 };
 
 //TODO: Type Traits to automate this
-U32 textureIndices[Math::Max(CountOf(textureNames[0]), Math::Max(CountOf(textureNames[1]), CountOf(textureNames[2])))][CountOf(textureNames)];
+U32 textureIndices[3][Math::Max(CountOf(decorationTextureNames), Math::Max(CountOf(blockTextureNames), CountOf(wallTextureNames)))];
 U32 maskIndices[CountOf(maskNames)];
 
 bool Timeslip::Initialize()
@@ -57,7 +59,11 @@ bool Timeslip::Initialize()
 	//Resources::UploadTexture("DesertStone.bmp", upload);
 	//Resources::UploadTexture("DesertStoneWall.bmp", upload);
 	//Resources::UploadTexture("Flint.bmp", upload);
-	//Resources::UploadTexture("Grass.bmp", upload);
+	//Resources::UploadTexture("GrasslandGrass.bmp", upload);
+	//Resources::UploadTexture("MesaGrass.bmp", upload);
+	//Resources::UploadTexture("DesertGrass.bmp", upload);
+	//Resources::UploadTexture("MarshGrass.bmp", upload);
+	//Resources::UploadTexture("JungleGrass.bmp", upload);
 	//Resources::UploadTexture("GrasslandDirt.bmp", upload);
 	//Resources::UploadTexture("GrasslandDirtWall.bmp", upload);
 	//Resources::UploadTexture("GrasslandStone.bmp", upload);
@@ -87,45 +93,41 @@ bool Timeslip::Initialize()
 
 	//upload.usage = TEXTURE_USAGE_MASK;
 
-	Resources::UploadTexture("TileMask.bmp", upload);
-
-	for (U32 i = 0; i < CountOf(textureNames); ++i)
-	{
-		U32 j = 0;
-		for (const String& name : textureNames[i])
-		{
-			if (!name) { break; }
-			textureIndices[i][j++] = (U32)Resources::LoadTexture(name)->handle;
-		}
-	}
+	//Resources::UploadTexture("TileMask.bmp", upload);
 
 	U32 i = 0;
-	for (const String& name : maskNames)
-	{
-		maskIndices[i++] = (U32)Resources::LoadTexture(name)->handle;
-	}
+	for (const String& name : wallTextureNames) { textureIndices[0][i++] = (U32)Resources::LoadTexture(name)->handle; }
+	
+	i = 0;
+	for (const String& name : blockTextureNames) { textureIndices[1][i++] = (U32)Resources::LoadTexture(name)->handle; }
+	
+	i = 0;
+	for (const String& name : decorationTextureNames) { textureIndices[2][i++] = (U32)Resources::LoadTexture(name)->handle; }
+	
+	i = 0;
+	for (const String& name : maskNames) { maskIndices[i++] = (U32)Resources::LoadTexture(name)->handle; }
 	
 	U32 indices[]{ 0, 2, 1, 2, 3, 1,   4, 6, 5, 6, 7, 5,   8, 10, 9, 10, 11, 9,   12, 14, 13, 14, 15, 13,   16, 18, 17, 18, 19, 17 };
-
+	
 	TileVertex vertices[]{
-		{ { 0.0f, TILE_HEIGHT, 1.0f },			{ 0.0f, 0.0f },							{ 0.0f, 0.0f } },
-		{ { TILE_WIDTH, TILE_HEIGHT, 1.0f },	{ TILE_TEX_WIDTH, 0.0f },				{ MASK_TEX_WIDTH, 0.0f } },
-		{ { 0.0f, 0.0f, 1.0f },					{ 0.0f, TILE_TEX_HEIGHT },				{ 0.0f, MASK_TEX_HEIGHT } },
-		{ { TILE_WIDTH, 0.0f, 1.0f },			{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT },	{ MASK_TEX_WIDTH, MASK_TEX_HEIGHT }	},
-
 		{ { 0.0f, TILE_HEIGHT, 2.0f },			{ 0.0f, 0.0f },							{ 0.0f, 0.0f } },
 		{ { TILE_WIDTH, TILE_HEIGHT, 2.0f },	{ TILE_TEX_WIDTH, 0.0f },				{ MASK_TEX_WIDTH, 0.0f } },
 		{ { 0.0f, 0.0f, 2.0f },					{ 0.0f, TILE_TEX_HEIGHT },				{ 0.0f, MASK_TEX_HEIGHT } },
 		{ { TILE_WIDTH, 0.0f, 2.0f },			{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT },	{ MASK_TEX_WIDTH, MASK_TEX_HEIGHT }	},
-
+	
 		{ { 0.0f, TILE_HEIGHT, 3.0f },			{ 0.0f, 0.0f },							{ 0.0f, 0.0f } },
 		{ { TILE_WIDTH, TILE_HEIGHT, 3.0f },	{ TILE_TEX_WIDTH, 0.0f },				{ MASK_TEX_WIDTH, 0.0f } },
 		{ { 0.0f, 0.0f, 3.0f },					{ 0.0f, TILE_TEX_HEIGHT },				{ 0.0f, MASK_TEX_HEIGHT } },
 		{ { TILE_WIDTH, 0.0f, 3.0f },			{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT },	{ MASK_TEX_WIDTH, MASK_TEX_HEIGHT }	},
+	
+		{ { 0.0f, TILE_HEIGHT, 1.0f },			{ 0.0f, 0.0f },							{ 0.0f, 0.0f } },
+		{ { TILE_WIDTH, TILE_HEIGHT, 1.0f },	{ TILE_TEX_WIDTH, 0.0f },				{ MASK_TEX_WIDTH, 0.0f } },
+		{ { 0.0f, 0.0f, 1.0f },					{ 0.0f, TILE_TEX_HEIGHT },				{ 0.0f, MASK_TEX_HEIGHT } },
+		{ { TILE_WIDTH, 0.0f, 1.0f },			{ TILE_TEX_WIDTH, TILE_TEX_HEIGHT },	{ MASK_TEX_WIDTH, MASK_TEX_HEIGHT }	},
 	};
-
+	
 	tilePushConstant.globalColor = Vector4One;
-
+	
 	//TODO: Create background shader
 	PushConstant pushConstants[]
 	{
@@ -133,7 +135,7 @@ bool Timeslip::Initialize()
 		{ sizeof(TilePushConstant), sizeof(CameraData), Renderer::GetCameraData() }
 	};
 	tileShader = Resources::CreateShader("shaders/Tile.nhshd", CountOf32(pushConstants), pushConstants);
-
+	
 	PipelineInfo info{};
 	info.name = "tile_pipeline";
 	info.shader = tileShader;
@@ -141,23 +143,23 @@ bool Timeslip::Initialize()
 	info.indexBufferSize = sizeof(U32) * CountOf32(indices);
 	info.drawBufferSize = 60; //VkDrawIndexedIndirectCommand * 3
 	tilePipelineGraph.AddPipeline(info);
-
+	
 	tilePipelineGraph.Create("Tiles");
-
+	
 	gameScene = Resources::CreateScene("game_scene", CAMERA_TYPE_ORTHOGRAPHIC);
 	Renderer::LoadScene(gameScene); //TODO: Load menu scene first
 	Renderer::SetRenderGraph(&tilePipelineGraph);
-
+	
 	tilePipeline = tilePipelineGraph.GetPipeline(0, 0);
-
+	
 	tilePipeline->UploadIndices(sizeof(U32) * CountOf32(indices), indices);
 	tilePipeline->UploadVertices(sizeof(TileVertex) * CountOf32(vertices), vertices);
 	tilePipeline->UploadDrawCall(6, 0, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT, 0);
 	tilePipeline->UploadDrawCall(6, 6, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT);
 	tilePipeline->UploadDrawCall(6, 12, 0, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT, VIEW_CHUNKS_X * VIEW_CHUNKS_Y * CHUNK_TILE_COUNT * 2);
-
+	
 	stagingBuffer = Renderer::CreateBuffer(sizeof(TileInstance) * CHUNK_INSTANCE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y, BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
-
+	
 	World::Initialize((TileInstance*)stagingBuffer.data, WORLD_SIZE_LARGE);
 
 	return true;
@@ -169,13 +171,15 @@ void Timeslip::Shutdown()
 
 	tilePipelineGraph.Destroy();
 
-	for (U32 i = 0; i < CountOf(textureNames); ++i)
-	{
-		for (String& string : textureNames[i])
-		{
-			string.Destroy();
-		}
-	}
+	Renderer::DestroyBuffer(stagingBuffer);
+
+	for (String& string : wallTextureNames) { string.Destroy(); }
+	
+	for (String& string : blockTextureNames) { string.Destroy(); }
+	
+	for (String& string : decorationTextureNames) { string.Destroy(); }
+
+	for (String& string : maskNames) { string.Destroy(); }
 }
 
 void Timeslip::Update()

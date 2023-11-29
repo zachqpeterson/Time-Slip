@@ -37,7 +37,7 @@ U16 World::topIndex{ VIEW_CHUNKS_Y - 1 };
 
 bool World::Initialize(TileInstance* instanceBuffer, WorldSize size)
 {
-	SEED = GenerateSeed();
+	SEED = -88579424064;//GenerateSeed();
 
 	TILE_COUNT_X = (U16)size;
 	TILE_COUNT_Y = (U16)(TILE_COUNT_X / 3.5f);
@@ -50,8 +50,8 @@ bool World::Initialize(TileInstance* instanceBuffer, WorldSize size)
 
 	if (!tiles) { Memory::AllocateStaticArray(&tiles, TOTAL_TILE_COUNT); }
 
-	wallInstances = instanceBuffer;
-	blockInstances = instanceBuffer + CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
+	blockInstances = instanceBuffer;
+	wallInstances = instanceBuffer + CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y;
 	decorationInstances = instanceBuffer + CHUNK_TILE_COUNT * VIEW_CHUNKS_X * VIEW_CHUNKS_Y * 2;
 
 	GenerateWorld();
@@ -280,7 +280,7 @@ void World::GenerateWorld()
 			tiles[x + y * TILE_COUNT_X] = { 0, 0, U8_MAX };
 		}
 
-		tiles[x + heightmap * TILE_COUNT_X].decoration = 0;
+		tiles[x + (heightmap - 1) * TILE_COUNT_X].decoration = 0;
 
 		for (I16 y = heightmap; y < TILE_COUNT_Y; ++y)
 		{
